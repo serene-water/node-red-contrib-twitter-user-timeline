@@ -72,8 +72,12 @@
     <input type="text" id="node-input-screenname" placeholder="screenname">
   </div>
   <div class="form-row">
-    <label for="node-input-count">Count (1-200)</label>
+    <label for="node-input-count">Count (1-3200)</label>
     <input type="text" id="node-input-count" placeholder="100">
+  </div>
+  <div class="form-row">
+    <label for="node-input-sinceid">Since ID</label>
+    <input type="text" id="node-input-sinceid">
   </div>
   <div class="form-row">
     <label style="width:30%">Include retweets?</label>
@@ -96,9 +100,14 @@
     <label for="node-input-contributordetails" style="width:auto;"> Contributor Details</label>
   </div>
   <div class="form-row">
-    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-    <input type="text" id="node-input-name" placeholder="Name">
-  </div>
+    <label for="node-input-tweetmode" style="vertical-align: top"><i class="fa fa-arrow-right"></i> Get full tweets</label>
+    <input type="checkbox" id="node-input-tweetmode" style="display: inline-block; width: auto; vertical-align: top;">
+    <label for="node-input-tweetmode" style="width: 30%;">Check to append the 'tweet_mode = extended' option to obtain a full tweet rather than a truncated version</label>
+</div>
+<div class="form-row">
+  <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+  <input type="text" id="node-input-name" placeholder="Name">
+</div>
 </script>
 
 <script type="text/x-red" data-help-name="Twitter-User-Timeline">
@@ -155,6 +164,9 @@
         value: true
       },
       contributordetails: {
+        value: false
+      },
+      tweetmode: {
         value: false
       }
     },
