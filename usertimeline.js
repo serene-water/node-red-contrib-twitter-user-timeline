@@ -114,12 +114,12 @@ module.exports = function(RED) {
         params.since_id = node.sinceid;
       }
 
-      // Twitter API only returns up to 200 tweets per request
-      // If node.count is larger than 200, set node.sinceid as max_id
+      // The Twitter API only returns up to 200 tweets per request
+      // for user timelines.
+      // If the value of node.count is set to be larger than 200,
+      // then set node.sinceid as since_id
       // https://developer.twitter.com/en/docs/tweets/timelines/api-reference/get-statuses-user_timeline.html
 
-
-      // node.warn(params);
 
       // If the count is 0, that means the previous query was the last one.
       // Don't send any more queries.
