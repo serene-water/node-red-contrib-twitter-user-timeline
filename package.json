@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/kotasuizu/node-red-contrib-twitter-user-timeline"
+    "url": "https://github.com/serene-water/node-red-contrib-twitter-user-timeline"
   },
   "author": "Kota Suizu",
   "license": "MIT"
