@@ -7,6 +7,8 @@
 module.exports = function(RED) {
   "use strict";
   var twitter = require('twitter');
+  // The API returns up to 200 tweets per request
+  const reqLimit = 200;
 
   // Key情報を保持するConfig
   function TwitterUserTimelineConfig(n) {
@@ -55,6 +57,7 @@ module.exports = function(RED) {
     this.screenname = n.screenname;
     this.count = n.count;
     this.sinceid = n.sinceid;
+    this.maxid = n.maxid;
     this.includerts = n.includerts;
     this.trimuser = n.trimuser;
     this.excludereplies = n.excludereplies;
@@ -71,7 +74,6 @@ module.exports = function(RED) {
       });
 
       if (_isTypeOf('String', msg.payload.screenname)) {
-        node.warn(msg.payload.screenname);
         node.screenname = msg.payload.screenname;
       }
       if (_isTypeOf('Number', msg.payload.count)) {
@@ -79,7 +81,9 @@ module.exports = function(RED) {
       }
       if (_isTypeOf('String', msg.payload.sinceid)) {
         node.sinceid = msg.payload.sinceid;
-        node.warn(node.sinceid);
+      }
+      if (_isTypeOf('String', msg.payload.maxid)) {
+        node.maxid = msg.payload.maxid;
       }
       if (_isTypeOf('Boolean', msg.payload.includerts)) {
         node.includerts = msg.payload.includerts;
@@ -104,65 +108,65 @@ module.exports = function(RED) {
         include_rts: node.includerts,
         trim_user: node.trimuser,
         exclude_replies: node.excludereplies,
-        contributor_details: node.contributordetails,
+        contributor_details: node.contributordetails
       };
 
       if (node.tweetmode === true) {
         params.tweet_mode = 'extended';
       }
-      if (node.sinceid != null) {
+
+      if (node.sinceid) {
         params.since_id = node.sinceid;
+      }
+
+      if (node.maxid) {
+        params.max_id = node.maxid;
       }
 
       // The Twitter API only returns up to 200 tweets per request
       // for user timelines.
       // If the value of node.count is set to be larger than 200,
-      // then set node.sinceid as since_id
+      // then set max_id
       // https://developer.twitter.com/en/docs/tweets/timelines/api-reference/get-statuses-user_timeline.html
 
+      client.get('statuses/user_timeline', params, function(error, tweets, response) {
+        if (!error) {
+          msg.payload = {
+            'statusCode' : response.statusCode,
+            'tweets' : tweets
+          };
 
-      // If the count is 0, that means the previous query was the last one.
-      // Don't send any more queries.
-      if (msg.payload.count != null && msg.payload.count === 0) {
-        msg.payload = {'user_timeline_exhausted' : true};
-        node.send(msg);
-      }
-      else {
-        client.get('statuses/user_timeline', params, function(error, tweets, response) {
-          if (!error) {
-            msg.payload = {
-              'statusCode' : response.statusCode,
-              'tweets' : tweets,
-              'user_timeline_exhausted' : false
-            };
+          // If more than 200 tweets are requested, store the remaining
+          // count in msg.payload.count
 
-            // If more than 200 tweets are requested, store the remaining
-            // count in msg.payload.count
-            if (node.count > 200) {
-              msg.payload.count = node.count - 200;
-            }
-            else if (node.count <= 200) {
-              msg.payload.count = 0;
-            }
-            // Get the since_id and store it in msg.payload.sinceid
-            let last_element = tweets[tweets.length - 1];
-            msg.payload.sinceid = last_element.id_str;
-
-            node.send(msg);
-
-            node.log(RED._('Succeeded to API Call.'));
-          } else if (response.statusCode === 401) {
-            msg.payload = {
-              'statusCode' : response.statusCode
-            };
-
-            node.send(msg);
-            node.log(RED._('Error: 401 Authorization Required'));
-          } else {
-            node.error("Failed to API Call. " + error);
+          msg.payload.count = 0;
+          msg.payload.user_timeline_exhausted = true;
+          if (node.count > reqLimit) {
+            msg.payload.count = node.count - reqLimit;
+            msg.payload.user_timeline_exhausted = false;
           }
-        });
-      }
+          
+          // Get the sinceid and store it in msg.payload.sinceid
+          msg.payload.maxid = '';
+          if (tweets.length > 1) {
+            var last_element = tweets[tweets.length - 1];
+            msg.payload.maxid = last_element.id_str;
+          }
+
+          node.send(msg);
+          node.log(RED._('Succeeded to API Call.'));
+
+        } else if (response.statusCode === 401) {
+          msg.payload = {
+            'statusCode' : response.statusCode
+          };
+
+          node.send(msg);
+          node.log(RED._('Error: 401 Authorization Required'));
+        } else {
+          node.error("Failed to API Call. " + error);
+        }
+      });
     });
   }
   RED.nodes.registerType("Twitter-User-Timeline", TwitterUserTimeline);
