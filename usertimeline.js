@@ -6,7 +6,7 @@
 
 module.exports = function(RED) {
   "use strict";
-  var twitter = require('twitter');
+  let twitter = require('twitter');
   // The API returns up to 200 tweets per request
   const reqLimit = 200;
 
@@ -17,7 +17,7 @@ module.exports = function(RED) {
     this.consumer_secret = n.consumer_secret;
     this.access_token_key = n.access_token_key;
     this.access_token_secret = n.access_token_secret;
-    var credentials = this.credentials;
+    let credentials = this.credentials;
     if ((credentials) && (credentials.hasOwnProperty("consumer_key"))) {
       this.consumer_key = credentials.consumer_key;
     }
@@ -56,6 +56,7 @@ module.exports = function(RED) {
 
     this.screenname = n.screenname;
     this.count = n.count;
+    this.origCount = n.count;
     this.sinceid = n.sinceid;
     this.maxid = n.maxid;
     this.includerts = n.includerts;
@@ -64,9 +65,9 @@ module.exports = function(RED) {
     this.contributordetails = n.contributordetails;
     this.tweetmode = n.tweetmode;
 
-    var node = this;
+    let node = this;
     this.on('input', function(msg) {
-      var client = new twitter({
+      const client = new twitter({
         consumer_key: node.twitterConfig.consumer_key,
         consumer_secret: node.twitterConfig.consumer_secret,
         access_token_key: node.twitterConfig.access_token_key,
@@ -102,7 +103,7 @@ module.exports = function(RED) {
         node.tweetmode = msg.payload.tweetmode;
       }
 
-      var params = {
+      let params = {
         screen_name: node.screenname,
         count: node.count,
         include_rts: node.includerts,
@@ -138,22 +139,25 @@ module.exports = function(RED) {
 
           // If more than 200 tweets are requested, store the remaining
           // count in msg.payload.count
-
-          msg.payload.count = 0;
-          msg.payload.user_timeline_exhausted = true;
-          if (node.count > reqLimit) {
+          if (node.count >= reqLimit) {
             msg.payload.count = node.count - reqLimit;
             msg.payload.user_timeline_exhausted = false;
           }
-          
+          else {
+            msg.payload.count = 0;
+            msg.payload.user_timeline_exhausted = true;
+            // reset the counter
+            msg.payload.count = node.origCount;
+          }
+
           // Get the sinceid and store it in msg.payload.sinceid
           msg.payload.maxid = '';
           if (tweets.length > 1) {
-            var last_element = tweets[tweets.length - 1];
+            let last_element = tweets[tweets.length - 1];
             msg.payload.maxid = last_element.id_str;
           }
 
-          node.send(msg);
+          node.send([msg, null]);
           node.log(RED._('Succeeded to API Call.'));
 
         } else if (response.statusCode === 401) {
@@ -161,10 +165,13 @@ module.exports = function(RED) {
             'statusCode' : response.statusCode
           };
 
-          node.send(msg);
+          node.send([msg, null]);
           node.log(RED._('Error: 401 Authorization Required'));
+
         } else {
-          node.error("Failed to API Call. " + error);
+          node.warn("Failed to API Call. " + error);
+          msg.payload = {};
+          node.send([null, msg]);
         }
       });
     });
@@ -172,7 +179,7 @@ module.exports = function(RED) {
   RED.nodes.registerType("Twitter-User-Timeline", TwitterUserTimeline);
 
   function _isTypeOf(type, obj) {
-      var clas = Object.prototype.toString.call(obj).slice(8, -1);
+      let clas = Object.prototype.toString.call(obj).slice(8, -1);
       return obj !== undefined && obj !== null && clas === type;
   }
 
