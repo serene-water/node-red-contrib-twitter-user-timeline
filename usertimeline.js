@@ -7,8 +7,6 @@
 module.exports = function(RED) {
   "use strict";
   let twitter = require('twitter');
-  // The API returns up to 200 tweets per request
-  const reqLimit = 200;
 
   // Key情報を保持するConfig
   function TwitterUserTimelineConfig(n) {
@@ -67,6 +65,7 @@ module.exports = function(RED) {
 
     let node = this;
     this.on('input', function(msg) {
+
       const client = new twitter({
         consumer_key: node.twitterConfig.consumer_key,
         consumer_secret: node.twitterConfig.consumer_secret,
@@ -103,6 +102,8 @@ module.exports = function(RED) {
         node.tweetmode = msg.payload.tweetmode;
       }
 
+      msg.payload.origCount = this.origCount;
+
       let params = {
         screen_name: node.screenname,
         count: node.count,
@@ -123,55 +124,28 @@ module.exports = function(RED) {
       if (node.maxid) {
         params.max_id = node.maxid;
       }
-
-      // The Twitter API only returns up to 200 tweets per request
-      // for user timelines.
-      // If the value of node.count is set to be larger than 200,
-      // then set max_id
-      // https://developer.twitter.com/en/docs/tweets/timelines/api-reference/get-statuses-user_timeline.html
-
+      node.warn(params);
       client.get('statuses/user_timeline', params, function(error, tweets, response) {
-        if (!error) {
-          msg.payload = {
-            'statusCode' : response.statusCode,
-            'tweets' : tweets
-          };
-
-          // If more than 200 tweets are requested, store the remaining
-          // count in msg.payload.count
-          if (node.count >= reqLimit) {
-            msg.payload.count = node.count - reqLimit;
-            msg.payload.user_timeline_exhausted = false;
+        try {
+          if (!error) {
+            msg.payload = {
+              'statusCode' : response.statusCode,
+              'tweets' : tweets,
+              'count' : node.count
+            };
+            node.log(RED._('Succeeded to API Call.'));
           }
           else {
-            msg.payload.count = 0;
-            msg.payload.user_timeline_exhausted = true;
-            // reset the counter
-            msg.payload.count = node.origCount;
+            throw error;
           }
+        }
 
-          // Get the sinceid and store it in msg.payload.sinceid
-          msg.payload.maxid = '';
-          if (tweets.length > 1) {
-            let last_element = tweets[tweets.length - 1];
-            msg.payload.maxid = last_element.id_str;
-          }
+        catch (e) {
+          node.warn(e);
+        }
 
-          node.send([msg, null]);
-          node.log(RED._('Succeeded to API Call.'));
-
-        } else if (response.statusCode === 401) {
-          msg.payload = {
-            'statusCode' : response.statusCode
-          };
-
-          node.send([msg, null]);
-          node.log(RED._('Error: 401 Authorization Required'));
-
-        } else {
-          node.warn("Failed to API Call. " + error);
-          msg.payload = {};
-          node.send([null, msg]);
+        finally {
+          node.send(msg);
         }
       });
     });
@@ -179,8 +153,7 @@ module.exports = function(RED) {
   RED.nodes.registerType("Twitter-User-Timeline", TwitterUserTimeline);
 
   function _isTypeOf(type, obj) {
-      let clas = Object.prototype.toString.call(obj).slice(8, -1);
+      const clas = Object.prototype.toString.call(obj).slice(8, -1);
       return obj !== undefined && obj !== null && clas === type;
   }
-
 }

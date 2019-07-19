@@ -107,11 +107,12 @@
     <label for="node-input-tweetmode" style="vertical-align: top"><i class="fa fa-arrow-right"></i> Get full tweets</label>
     <input type="checkbox" id="node-input-tweetmode" style="display: inline-block; width: auto; vertical-align: top;">
     <label for="node-input-tweetmode" style="width: 30%;">Check to append the 'tweet_mode = extended' option to obtain a full tweet rather than a truncated version</label>
-</div>
-<div class="form-row">
-  <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-  <input type="text" id="node-input-name" placeholder="Name">
-</div>
+  </div>
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name">
+  </div>
+
 </script>
 
 <script type="text/x-red" data-help-name="Twitter-User-Timeline">
@@ -120,7 +121,7 @@
       The input message contains the following properties:
       <ul>
           <li><code>msg.payload.screenname</code> : (String) The screen name of the user for whom to return results.</li>
-          <li><code>msg.payload.count</code> : (int) Specifies the number of Tweets to try and retrieve. (1-200)</li>
+          <li><code>msg.payload.count</code> : (int) Specifies the number of Tweets to try and retrieve. (1-3200)</li>
           <li><code>msg.payload.includerts</code> : (Boolean)</li>
           <li><code>msg.payload.trimuser</code> : (Boolean)</li>
           <li><code>msg.payload.excludereplies</code> : (Boolean)</li>
@@ -182,7 +183,7 @@
     },
     color: "#C0DEED",
     inputs: 1,
-    outputs: 2,
+    outputs: 1,
     icon: "twitter.png",
     label: function() {
       return this.name || "Twitter User Timeline";
