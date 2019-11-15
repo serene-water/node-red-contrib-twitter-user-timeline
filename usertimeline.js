@@ -124,7 +124,7 @@ module.exports = function(RED) {
       if (node.maxid) {
         params.max_id = node.maxid;
       }
-      node.warn(params);
+      // node.warn(params);
       client.get('statuses/user_timeline', params, function(error, tweets, response) {
         try {
           if (!error) {
